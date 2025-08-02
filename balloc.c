@@ -1,4 +1,4 @@
-#include <lib/alloc.h>
+#include "alloc.h"
 
 static unsigned char pool[POOL_SIZE] = { 0 };
 
