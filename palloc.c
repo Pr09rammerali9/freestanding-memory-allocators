@@ -1,4 +1,4 @@
-#include "lib/alloc.h"
+#include "alloc.h"
 
 static struct blk {
     size_t size;
