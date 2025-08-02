@@ -5,7 +5,7 @@
 #define TLSF_SL_INDEX_COUNT 32
 #define TLSF_MAX_BLOCK_SIZE (1 << (TLSF_FL_INDEX_COUNT - 1))
 
-#define POOL_SIZE_BYTES 7168
+#define POOL_SIZE_BYTES 8192
 static char memory_pool[POOL_SIZE_BYTES];
 
 #define MIN_BLOCK_SIZE (sizeof(blk_hdr_t))
