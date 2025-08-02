@@ -50,3 +50,53 @@ if (p1) {
 // Allocate an aligned block for a specific purpose
 void *p2 = palloc_ali(128, 64); // 64-byte alignment for a DMA buffer, for example
 ```
+
+# Update:TLSF allocator added
+
+### Features:
+TLSF Allocator (tlsf_alloc)
+The Two-Level Segregated Fit (TLSF) allocator provides a fast, O(1) solution for dynamic memory management. It is ideal for complex, multi-threaded environments where performance and low fragmentation are critical.
+ * O(1) Time Complexity: Memory allocations and deallocations are performed in constant time, regardless of the pool size.
+ * Thread Safety: The allocator can be initialized with user-provided lock and unlock functions to ensure safe operation in a multi-threaded context.
+ * Dynamic Pools: The allocator's memory can be extended dynamically.
+ * Aligned Allocations: Supports memory allocation with a specified alignment using tlsf_alloc_ali. 
+
+Example:
+```c
+#include "alloc.h"
+#include <stdio.h>
+
+// Example lock and unlock functions for a multi-threaded context
+void my_lock() {
+    // ... acquire mutex ...
+}
+
+void my_unlock() {
+    // ... release mutex ...
+}
+
+int main() {
+    // Initialize the thread-safe allocator with our lock functions
+    tlsf_init_lk(my_lock, my_unlock);
+
+    // Allocate memory using the thread-safe function
+    size_t data_size = 128;
+    void* p1 = tlsf_alloc_lk(data_size);
+
+    if (p1 != NULL) {
+        printf("Allocated 128 bytes at address: %p\n", p1);
+        // use the allocated memory...
+    }
+
+    // Allocate memory with a specific alignment (e.g., 64 bytes)
+    void* p2 = tlsf_alloc_ali_lk(100, 64);
+    if (p2 != NULL) {
+        printf("Allocated 100 aligned bytes at address: %p\n", p2);
+    }
+    
+    // Free the allocated memory
+    tlsf_free_lk(p1);
+    tlsf_free_lk(p2);
+
+    return 0;
+}
