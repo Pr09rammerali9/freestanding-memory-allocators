@@ -1,6 +1,6 @@
 #include "alloc.h"
 
-static unsigned char pool[POOL_SIZE] = { 0 };
+static unsigned char pool[3072] = { 0 };
 
 static size_t off = 0;
 
