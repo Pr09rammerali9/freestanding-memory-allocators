@@ -2,8 +2,8 @@
 #define ALLOC_H
 
 #include "mem.h"
-#include "def.h"
-#include "bit/ptr.h"
+#include <stddef.h>
+#include <stdint.h>
 
 #define alloca(n) __builtin_alloca(n)
 /*a bumb allocator*/
