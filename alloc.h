@@ -31,5 +31,5 @@ void *tlsf_alloc_ali(size_t size, size_t alignment);
 void *tlsf_alloc_ali_lk(size_t size, size_t alignment);
 void tlsf_free(void *p);
 void tlsf_free_lk(void *p);
-
+void tlsf_add_pool(void *mem_start, size_t mem_size);
 #endif
