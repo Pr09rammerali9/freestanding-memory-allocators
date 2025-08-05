@@ -23,6 +23,11 @@ void *palloc(size_t size);
 void *palloc_ali(size_t size, size_t alignment);
 void pfree(void *p);
 
+/*pb prefix for pool allocator with best fit algorthim*/
+void pbinit(void);
+void *pballoc(size_t size);
+void pbfree(void *p);
+
 void tlsf_init(void);
 void tlsf_init_lk(void (*lk)(void), void (*unlk)(void));
 void *tlsf_alloc(size_t size);
