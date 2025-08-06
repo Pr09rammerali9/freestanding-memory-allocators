@@ -1,4 +1,3 @@
-/*didnt have time + was writing fast, hope u understand, so expect some readabllity issues*/
 #include "alloc.h"
 
 #define TLSF_FL_INDEX_COUNT 32
@@ -62,7 +61,7 @@ static void rm_blk_from_free_ls(blk_hdr_t* blk) {
         tlsf_allocator.sl_list[fl][sl] = blk->next_free;
     if (blk->next_free)
         blk->next_free->prev_free = blk->prev_free;
-    
+
     if (tlsf_allocator.sl_list[fl][sl] == NULL) {
         tlsf_allocator.sl_bitmap[fl] &= ~(1 << sl);
         if (tlsf_allocator.sl_bitmap[fl] == 0)
@@ -127,18 +126,18 @@ void tlsf_init() {
     for (int i = 0; i < TLSF_FL_INDEX_COUNT; ++i) {
         tlsf_allocator.sl_bitmap[i] = 0;
     }
-    
+
     tlsf_add_pool(memory_pool, POOL_SIZE_BYTES);
 }
 
 void* tlsf_alloc(size_t size) {
     if (size == 0)
         return NULL;
-    
+
     size_t adjusted_size = (size + sizeof(blk_hdr_t) + (__alignof__(max_align_t) - 1)) & ~(__alignof__(max_align_t) - 1);
     if (adjusted_size < MIN_BLOCK_SIZE)
         adjusted_size = MIN_BLOCK_SIZE;
-    
+
     int fl, sl;
     find_free_ls(adjusted_size, &fl, &sl);
 
@@ -163,14 +162,14 @@ void* tlsf_alloc(size_t size) {
         blk_hdr_t* leftover_blk = split_blk(blk, adjusted_size);
         add_blk_to_free_ls(leftover_blk);
     }
-    
+
     return (void*)((char*)blk + sizeof(blk_hdr_t));
 }
 
 void* tlsf_alloc_ali(size_t size, size_t alignment) {
     if (size == 0)
         return NULL;
-    
+
     size_t extra_padding = alignment - 1;
     size_t required_size = size + extra_padding + sizeof(blk_hdr_t);
 
@@ -228,31 +227,42 @@ void tlsf_free(void* p) {
 void tlsf_init_lk(void (*lk)(void), void (*unlk)(void)) {
     _tlsf_lock = lk;
     _tlsf_unlock = unlk;
+
     tlsf_init();
 }
 
 void* tlsf_alloc_lk(size_t size) {
     if (_tlsf_lock)
         _tlsf_lock();
+
     void* p = tlsf_alloc(size);
+
     if (_tlsf_unlock)
         _tlsf_unlock();
+
     return p;
 }
 
 void* tlsf_alloc_ali_lk(size_t size, size_t alignment) {
+
     if (_tlsf_lock)
         _tlsf_lock();
+
     void* p = tlsf_alloc_ali(size, alignment);
+
     if (_tlsf_unlock)
         _tlsf_unlock();
+
     return p;
 }
 
 void tlsf_free_lk(void* p) {
+
     if (_tlsf_lock)
         _tlsf_lock();
+
     tlsf_free(p);
+
     if (_tlsf_unlock)
         _tlsf_unlock();
 }
