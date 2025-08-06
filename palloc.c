@@ -1,6 +1,6 @@
 #include "alloc.h"
 
-static struct blk {
+struct blk {
     size_t size;
     size_t mag;
 
@@ -10,7 +10,7 @@ static struct blk {
 /*some fucking humor*/
 #define ALLOCED_MAG 0xD0DEC00L
 
-static struct alloc_t {
+struct alloc_t {
     void *pstart;
 
     size_t pool_size;
