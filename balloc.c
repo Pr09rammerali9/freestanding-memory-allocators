@@ -21,7 +21,7 @@ void *balloc(size_t size, size_t alignment) {
             padding = alignment - rem;
     }
 
-    if (off + padding + size > POOL_SIZE)
+    if (off + padding + size > 3072)
         return NULL;
 
     unsigned char *alloced_ptr = pool + off + padding;
@@ -36,7 +36,7 @@ void breset(void) {
 
     off = 0;
 
-    memset(pool, 0, POOL_SIZE);
+    memset(pool, 0, 3072);
 
 }
 
