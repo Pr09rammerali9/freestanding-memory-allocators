@@ -76,7 +76,7 @@ void *palloc(size_t size) {
 
             cur->mag = ALLOCED_MAG;
 
-            return (void *)((uint8_t *)cur + sizeof(blk))
+            return (void *)((uint8_t *)cur + sizeof(blk));
 
         }
 
@@ -148,7 +148,7 @@ void *palloc_ali(size_t size, size_t alignment) {
     if (unaligned_ptr == NULL)
         return NULL;
 
-    uintptr_t aligned_addr = ((uintptr_t)unaligned_ptr + alignment + sizeof(void *) - 1) & ~(alignment - 1);
+    uintptr_t aligned_addr = ((uintptr_t)unaligned_ptr + alignment - 1 + sizeof(void *) - 1) & ~(alignment - 1);
 
     void **ptr_to_og = (void **)(aligned_addr - sizeof(void *));
 
