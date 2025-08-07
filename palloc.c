@@ -2,12 +2,11 @@
 
 struct blk {
     size_t size;
-    size_t mag;
+    size_t mag_start;
 
     struct blk *nxt;
 };
 
-/*some fucking humor*/
 #define ALLOCED_MAG 0xD0DEC00L
 
 struct alloc_t {
@@ -74,7 +73,9 @@ void *palloc(size_t size) {
 
             }
 
-            cur->mag = ALLOCED_MAG;
+            cur->mag_start = ALLOCED_MAG;
+            uintptr_t end_mag_addr = (uintptr_t)((uint8_t*)cur + sizeof(blk) + cur->size);
+            *(size_t*)end_mag_addr = ALLOCED_MAG;
 
             return (void *)((uint8_t *)cur + sizeof(blk));
 
@@ -90,14 +91,17 @@ void *palloc(size_t size) {
 void pfree(void *p) {
 
     if (p == NULL || p < alloc.pstart || p >= (uint8_t *)alloc.pstart + alloc.pool_size)
-        return; /*handle the fucking situation*/
+        return;
 
     blk *blk_to_free = (blk *)((uint8_t *)p - sizeof(blk));
 
-    if (blk_to_free->mag != ALLOCED_MAG)
+    uintptr_t end_mag_addr = (uintptr_t)((uint8_t*)p + blk_to_free->size);
+
+    if (blk_to_free->mag_start != ALLOCED_MAG || *(size_t*)end_mag_addr != ALLOCED_MAG)
         return;
 
-    blk_to_free->mag = 0;
+    blk_to_free->mag_start = 0;
+    *(size_t*)end_mag_addr = 0;
 
     blk *cur = alloc.free_ls_hd,
         *prev = NULL;
@@ -141,19 +145,31 @@ void *palloc_ali(size_t size, size_t alignment) {
     if (alignment == 0 || (alignment & (alignment - 1)) != 0)
         return NULL;
 
-    size_t req_size = size + alignment + sizeof(void *);
+    size_t total_size = size + alignment + sizeof(void *);
 
-    void *unaligned_ptr = palloc(req_size);
+    void *unaligned_ptr = palloc(total_size);
 
     if (unaligned_ptr == NULL)
         return NULL;
 
-    uintptr_t aligned_addr = ((uintptr_t)unaligned_ptr + alignment - 1 + sizeof(void *) - 1) & ~(alignment - 1);
+    uintptr_t aligned_addr = ((uintptr_t)unaligned_ptr + alignment + sizeof(void *) - 1) & ~(alignment - 1);
 
     void **ptr_to_og = (void **)(aligned_addr - sizeof(void *));
-    *ptr_to_og = unaligned_ptr;
 
     memcpy(ptr_to_og, &unaligned_ptr, sizeof(void *));
 
     return (void *)aligned_addr;
+}
+
+void pfree_ali(void *p) {
+
+    if (p == NULL)
+        return;
+
+    void **ptr_to_og = (void **)((uintptr_t)p - sizeof(void *));
+
+    void *unaligned_ptr = *ptr_to_og;
+
+    pfree(unaligned_ptr);
+
 }
