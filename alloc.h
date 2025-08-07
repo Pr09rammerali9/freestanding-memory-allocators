@@ -22,6 +22,7 @@ void pinit(void);
 void *palloc(size_t size);
 void *palloc_ali(size_t size, size_t alignment);
 void pfree(void *p);
+void pfree_ali(void *p);
 
 /*pb prefix for pool allocator with best fit algorthim*/
 void pbinit(void);
