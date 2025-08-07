@@ -19,6 +19,9 @@ typedef struct {
 static pb_alloc_t pb_alloc;
 static unsigned char pb_pool[PB_POOL_SIZE];
 
+static void (*_pb_lock)(void);
+static void (*_pb_unlock)(void);
+
 void pbinit(void) {
 
     pb_alloc.pstart = pb_pool;
@@ -135,4 +138,42 @@ void pbfree(void *p) {
 
     }
 
+}
+
+void pbinit_lk(void (*lk)(void), void (*unlk)(void)) {
+
+    _pb_lock = lk;
+    _pb_unlock = unlk;
+
+    if (_pb_lock)
+        _pb_lock();
+
+    pbinit();
+
+    if (_pb_unlock)
+        _pb_unlock();
+}
+
+void* pballoc_lk(size_t size) {
+
+    if (_pb_lock)
+        _pb_lock();
+
+    void* p = pballoc(size);
+
+    if (_pb_unlock)
+        _pb_unlock();
+
+    return p;
+}
+
+void pbfree_lk(void* p) {
+
+    if (_pb_lock)
+        _pb_lock();
+
+    pbfree(p);
+
+    if (_pb_unlock)
+        _pb_unlock();
 }
