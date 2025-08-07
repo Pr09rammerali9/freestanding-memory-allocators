@@ -151,6 +151,7 @@ void *palloc_ali(size_t size, size_t alignment) {
     uintptr_t aligned_addr = ((uintptr_t)unaligned_ptr + alignment - 1 + sizeof(void *) - 1) & ~(alignment - 1);
 
     void **ptr_to_og = (void **)(aligned_addr - sizeof(void *));
+    *ptr_to_og = unaligned_ptr;
 
     memcpy(ptr_to_og, &unaligned_ptr, sizeof(void *));
 
