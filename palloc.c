@@ -9,6 +9,9 @@ struct blk {
 
 #define ALLOCED_MAG 0xD0DEC00L
 
+static void (*_p_lock)(void);
+static void (*_p_unlock)(void);
+
 struct alloc_t {
     void *pstart;
 
@@ -172,4 +175,65 @@ void pfree_ali(void *p) {
 
     pfree(unaligned_ptr);
 
+}
+
+void pinit_lk(void (*lk)(void), void (*unlk)(void)) {
+
+    _p_lock = lk;
+    _p_unlock = unlk;
+
+    if (_p_lock)
+        _p_lock();
+
+    pinit();
+
+    if (_p_unlock)
+        _p_unlock();
+}
+
+void* palloc_lk(size_t size) {
+    if (_p_lock)
+        _p_lock();
+
+    void* p = palloc(size);
+
+    if (_p_unlock)
+        _p_unlock();
+
+    return p;
+}
+
+void* palloc_ali_lk(size_t size, size_t alignment) {
+
+    if (_p_lock)
+        _p_lock();
+
+    void* p = palloc_ali(size, alignment);
+
+    if (_p_unlock)
+        _p_unlock();
+
+    return p;
+}
+
+void pfree_lk(void* p) {
+
+    if (_p_lock)
+        _p_lock();
+
+    pfree(p);
+
+    if (_p_unlock)
+        _p_unlock();
+}
+
+void pfree_ali_lk(void* p) {
+
+    if (_p_lock)
+        _p_lock();
+
+    pfree_ali(p);
+
+    if (_p_unlock)
+        _p_unlock();
 }
