@@ -8,9 +8,11 @@
 static char memory_pool[POOL_SIZE_BYTES];
 
 #define MIN_BLOCK_SIZE (sizeof(blk_hdr_t))
+#define TLSF_MAGIC 0xFEEDC0DE
 
 typedef struct block_header {
     size_t size;
+    size_t magic_start;
     struct block_header* next_free;
     struct block_header* prev_free;
     struct block_header* prev_block;
@@ -87,14 +89,14 @@ static inline blk_hdr_t* split_blk(blk_hdr_t* blk, size_t split_size) {
 
 static inline blk_hdr_t* coalesce_blk(blk_hdr_t* blk) {
     blk_hdr_t* prev_blk = blk->prev_block;
-    if (prev_blk != NULL && prev_blk->next_free != NULL) {
+    if (prev_blk != NULL && (size_t)prev_blk + prev_blk->size == (size_t)blk) {
         rm_blk_from_free_ls(prev_blk);
         blk->size += prev_blk->size;
         blk->prev_block = prev_blk->prev_block;
     }
 
     blk_hdr_t* next_blk = blk->next_block;
-    if (next_blk != NULL && next_blk->next_free != NULL) {
+    if (next_blk != NULL && (size_t)blk + blk->size == (size_t)next_blk) {
         rm_blk_from_free_ls(next_blk);
         blk->size += next_blk->size;
         blk->next_block = next_blk->next_block;
@@ -104,7 +106,7 @@ static inline blk_hdr_t* coalesce_blk(blk_hdr_t* blk) {
     return blk;
 }
 
-void tlsf_add_pool(void* mem_start, size_t mem_size) {
+static void tlsf_add_pool_internal(void* mem_start, size_t mem_size) {
     if (mem_size < MIN_BLOCK_SIZE)
         return;
 
@@ -113,6 +115,10 @@ void tlsf_add_pool(void* mem_start, size_t mem_size) {
     initial_blk->prev_block = NULL;
     initial_blk->next_block = NULL;
     add_blk_to_free_ls(initial_blk);
+}
+
+void tlsf_add_pool(void* mem_start, size_t mem_size) {
+    tlsf_add_pool_internal(mem_start, mem_size);
 }
 
 void tlsf_init() {
@@ -127,7 +133,7 @@ void tlsf_init() {
         tlsf_allocator.sl_bitmap[i] = 0;
     }
 
-    tlsf_add_pool(memory_pool, POOL_SIZE_BYTES);
+    tlsf_add_pool_internal(memory_pool, POOL_SIZE_BYTES);
 }
 
 void* tlsf_alloc(size_t size) {
@@ -163,6 +169,10 @@ void* tlsf_alloc(size_t size) {
         add_blk_to_free_ls(leftover_blk);
     }
 
+    blk->magic_start = TLSF_MAGIC;
+    size_t* magic_end = (size_t*)((char*)blk + blk->size);
+    *magic_end = TLSF_MAGIC;
+
     return (void*)((char*)blk + sizeof(blk_hdr_t));
 }
 
@@ -170,8 +180,7 @@ void* tlsf_alloc_ali(size_t size, size_t alignment) {
     if (size == 0)
         return NULL;
 
-    size_t extra_padding = alignment - 1;
-    size_t required_size = size + extra_padding + sizeof(blk_hdr_t);
+    size_t required_size = size + sizeof(blk_hdr_t) + (alignment - 1);
 
     int fl, sl;
     find_free_ls(required_size, &fl, &sl);
@@ -193,24 +202,17 @@ void* tlsf_alloc_ali(size_t size, size_t alignment) {
     blk_hdr_t* blk = tlsf_allocator.sl_list[fl_index][sl_index];
     rm_blk_from_free_ls(blk);
 
-    char* aligned_ptr = (char*)((((uintptr_t)blk + sizeof(blk_hdr_t)) + alignment - 1) & ~(alignment - 1));
-    size_t aligned_blk_size = size + (aligned_ptr - (char*)blk);
+    char* aligned_ptr = (char*)((uintptr_t)((char*)blk + sizeof(blk_hdr_t) + alignment - 1) & ~(alignment - 1));
+    size_t aligned_blk_size = (size_t)(aligned_ptr - (char*)blk + size);
 
     if (blk->size > aligned_blk_size) {
-        size_t leftover_size = blk->size - aligned_blk_size;
-        blk->size = aligned_blk_size;
-
-        blk_hdr_t* leftover_blk = (blk_hdr_t*)((char*)blk + aligned_blk_size);
-        leftover_blk->size = leftover_size;
-
-        leftover_blk->prev_block = blk;
-        leftover_blk->next_block = blk->next_block;
-        if (blk->next_block)
-            blk->next_block->prev_block = leftover_blk;
-        blk->next_block = leftover_blk;
-
+        blk_hdr_t* leftover_blk = split_blk(blk, aligned_blk_size);
         add_blk_to_free_ls(leftover_blk);
     }
+
+    blk->magic_start = TLSF_MAGIC;
+    size_t* magic_end = (size_t*)((char*)blk + blk->size);
+    *magic_end = TLSF_MAGIC;
 
     return (void*)aligned_ptr;
 }
@@ -220,6 +222,12 @@ void tlsf_free(void* p) {
         return;
 
     blk_hdr_t* blk = (blk_hdr_t*)((char*)p - sizeof(blk_hdr_t));
+
+    size_t* magic_end = (size_t*)((char*)blk + blk->size);
+    if (blk->magic_start != TLSF_MAGIC || *magic_end != TLSF_MAGIC) {
+        return;
+    }
+    
     blk_hdr_t* merged_blk = coalesce_blk(blk);
     add_blk_to_free_ls(merged_blk);
 }
@@ -229,6 +237,14 @@ void tlsf_init_lk(void (*lk)(void), void (*unlk)(void)) {
     _tlsf_unlock = unlk;
 
     tlsf_init();
+}
+
+void tlsf_add_pool_lk(void* mem_start, size_t mem_size) {
+    if (_tlsf_lock)
+        _tlsf_lock();
+    tlsf_add_pool_internal(mem_start, mem_size);
+    if (_tlsf_unlock)
+        _tlsf_unlock();
 }
 
 void* tlsf_alloc_lk(size_t size) {
