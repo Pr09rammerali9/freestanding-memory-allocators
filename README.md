@@ -12,7 +12,7 @@ A suite of highly portable, high quallity memory allocators designed for use in 
 * **Freestanding Design:** The allocators can be used to manage memory in both a pre-paging and a post-paging environment, making them a versatile core component of any OS kernel.
 * **Simple Interface:** The API is clean and easy to integrate, making it ideal for hobby OS development and educational purposes.
 * **Minimal:** it only uses math, pointer arthicmetic, memcpy, memcmp, memset
-* **efficiency:** its only 519 lines in total
+* **efficiency:** its only few hundreds of lines in total
 ## Usage
 
 ### `balloc` (Bump Allocator)
