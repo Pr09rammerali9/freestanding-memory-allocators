@@ -48,6 +48,6 @@ size_t bget_used(void) {
 
 size_t bget_remaining(void) {
 
-    return POOL_SIZE - off;
+    return 3072 - off;
 
 } 
