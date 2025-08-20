@@ -25,3 +25,6 @@ void tlsf_add_pool_lk(void* mem_start, size_t mem_size, int fl_index);
 void* tlsf_alloc_lk(size_t size);
 void* tlsf_alloc_ali_lk(size_t size, size_t alignment);
 void tlsf_free_lk(void* p);
+
+*** add back original tlsf allocators before replaced as old_tlsf_*:
+
