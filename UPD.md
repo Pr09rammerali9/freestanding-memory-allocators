@@ -43,3 +43,5 @@ void* old_tlsf_alloc_ali_lk(size_t size, size_t alignment);
 void old_tlsf_free_lk(void* p);
 ```
 
+
+### update log 5:added dynamic allocators based on the tlsf allocation algorthim:
