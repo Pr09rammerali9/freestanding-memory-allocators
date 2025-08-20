@@ -70,11 +70,11 @@ Example:
 #include <stdio.h>
 
 // Example lock and unlock functions for a multi-threaded context
-void my_lock() {
+void my_lock(int lk_n) {
     // ... acquire mutex ...
 }
 
-void my_unlock() {
+void my_unlock(int lk_n) {
     // ... release mutex ...
 }
 
