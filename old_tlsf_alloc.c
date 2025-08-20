@@ -1,12 +1,10 @@
-#include "alloc.h"
+#include "alloc.h" 
 
 #define TLSF_FL_INDEX_COUNT 32
 #define TLSF_SL_INDEX_COUNT 32
 #define TLSF_MAX_BLOCK_SIZE (1 << (TLSF_FL_INDEX_COUNT - 1))
-
 #define POOL_SIZE_BYTES 8192
 static char memory_pool[POOL_SIZE_BYTES];
-
 #define MIN_BLOCK_SIZE (sizeof(blk_hdr_t))
 #define TLSF_MAGIC 0xFEEDC0DE
 
@@ -282,3 +280,16 @@ void old_tlsf_free_lk(void* p) {
     if (_tlsf_unlock)
         _tlsf_unlock();
 }
+
+void old_tlsf_add_pool_lk(void *mem_start, size_t size) {
+
+    if (_tlsf_lock)
+        _tlsf_lock();
+
+    old_tlsf_add_pool(mem_start, size);
+
+    if (_tlsf_unlock)
+        _tlsf_unlock();
+
+}
+ 
